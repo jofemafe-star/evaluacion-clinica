@@ -64,7 +64,7 @@ const HOLIDAYS_2026_27=new Set([
 // Sesiones de enero: lectivas para esta asignatura aunque sea período de exámenes UV
 const JAN_SESSIONS_2027=["2027-01-12","2027-01-19","2027-01-26"];
 
-function mkSession(id){
+function localId(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}function mkSession(id){
   return{id,date:new Date(id),status:"pendiente",pacienteNoAcude:false,studentScores:eScores(),professorScores:eScores(),studentComments:eComments(),professorComments:eComments(),feedback:""};
 }
 
@@ -76,7 +76,7 @@ function genSessions(year){
     // Primer semestre: 14 sept - 23 dic 2026 (martes y viernes)
     const cur=new Date(2026,8,14),end1=new Date(2026,11,23);
     while(cur<=end1){
-      const d=cur.getDay(),id=cur.toISOString().slice(0,10);
+      const d=cur.getDay(),id=localId(cur);
       if(d===2&&!holidays.has(id))s.push(mkSession(id));
       cur.setDate(cur.getDate()+1);
     }
@@ -98,7 +98,7 @@ function genSessions(year){
     const cur=new Date(yr,8,1),end=new Date(yr+1,4,31);
     while(cur<=end){
       const d=cur.getDay();
-      if(d===2||d===5)s.push(mkSession(cur.toISOString().slice(0,10)));
+      if(d===2||d===5)s.push(mkSession(localId(cur)));
       cur.setDate(cur.getDate()+1);
     }
   }
