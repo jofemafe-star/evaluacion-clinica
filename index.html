@@ -51,9 +51,57 @@ const CATS=[
 const eScores=()=>Object.fromEntries(CATS.map(c=>[c.id,Object.fromEntries(c.criteria.map((_,i)=>[i,null]))]));
 const eComments=()=>Object.fromEntries(CATS.map(c=>[c.id,""]));
 
+// Festivos y no lectivos UV 2026-2027 que caen en martes o viernes
+const HOLIDAYS_2026_27=new Set([
+  "2026-10-09", // Día de la Comunitat Valenciana (viernes)
+  "2026-12-08", // Inmaculada Concepción (martes)
+  "2027-03-19", // San José (viernes)
+  // 2027-03-23 es LECTIVO para esta asignatura (no excluir)
+  "2027-03-26", // Viernes Santo (festivo)
+  "2027-03-30", // No lectivo para esta asignatura (martes)
+]);
+
+// Sesiones de enero: lectivas para esta asignatura aunque sea período de exámenes UV
+const JAN_SESSIONS_2027=["2027-01-12","2027-01-19","2027-01-26"];
+
+function mkSession(id){
+  return{id,date:new Date(id),status:"pendiente",pacienteNoAcude:false,studentScores:eScores(),professorScores:eScores(),studentComments:eComments(),professorComments:eComments(),feedback:""};
+}
+
 function genSessions(year){
-  const s=[],cur=new Date(year,8,1),end=new Date(year+1,4,31);
-  while(cur<=end){const d=cur.getDay();if(d===2||d===5)s.push({id:cur.toISOString().slice(0,10),date:new Date(cur),status:"pendiente",pacienteNoAcude:false,studentScores:eScores(),professorScores:eScores(),studentComments:eComments(),professorComments:eComments(),feedback:""});cur.setDate(cur.getDate()+1);}
+  const s=[];
+  const yr=parseInt(year);
+  if(yr===2026){
+    const holidays=HOLIDAYS_2026_27;
+    // Primer semestre: 14 sept - 23 dic 2026 (martes y viernes)
+    const cur=new Date(2026,8,14),end1=new Date(2026,11,23);
+    while(cur<=end1){
+      const d=cur.getDay(),id=cur.toISOString().slice(0,10);
+      if(d===2&&!holidays.has(id))s.push(mkSession(id));
+      cur.setDate(cur.getDate()+1);
+    }
+    // Enero 2027: martes lectivos para esta asignatura
+    JAN_SESSIONS_2027.forEach(id=>s.push(mkSession(id)));
+    // Segundo semestre: 1 feb - 21 may 2027
+    // Martes: hasta el 18 de mayo incluido (no el 25)
+    // Viernes: hasta el 21 de mayo (fin de semestre UV)
+    const cur2=new Date(2027,1,1),end2=new Date(2027,4,21);
+    while(cur2<=end2){
+      const d=cur2.getDay(),id=cur2.toISOString().slice(0,10);
+      const isTue=d===2,isFri=d===5;
+      const skipLateTue=isTue&&id>"2027-05-18"; // Martes después del 18 mayo
+      if(isTue&&!holidays.has(id)&&!skipLateTue)s.push(mkSession(id));
+      cur2.setDate(cur2.getDate()+1);
+    }
+  }else{
+    // Años distintos: generación genérica sept-mayo
+    const cur=new Date(yr,8,1),end=new Date(yr+1,4,31);
+    while(cur<=end){
+      const d=cur.getDay();
+      if(d===2||d===5)s.push(mkSession(cur.toISOString().slice(0,10)));
+      cur.setDate(cur.getDate()+1);
+    }
+  }
   return s;
 }
 
@@ -287,7 +335,7 @@ function App(){
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
               <label style={{fontSize:12,color:"#555",whiteSpace:"nowrap"}}>Año inicio</label>
               <input type="number" value={yr} onChange={e=>setYr(e.target.value)} style={{width:90,fontSize:13,padding:"8px 10px",borderRadius:8,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A"}}/>
-              <span style={{fontSize:11,color:"#888"}}>sep {yr}–may {parseInt(yr)+1}</span>
+              <span style={{fontSize:11,color:"#888"}}>{parseInt(yr)===2026?"sept 2026–may 2027 (UV)":"sept "+yr+"–may "+(parseInt(yr)+1)}</span>
             </div>
           </div>
         )}
