@@ -64,7 +64,7 @@ const HOLIDAYS_2026_27=new Set([
 // Sesiones de enero: lectivas para esta asignatura aunque sea período de exámenes UV
 const JAN_SESSIONS_2027=["2027-01-12","2027-01-19","2027-01-26"];
 
-function localId(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}function mkSession(id){
+function mkSession(id){
   return{id,date:new Date(id),status:"pendiente",pacienteNoAcude:false,studentScores:eScores(),professorScores:eScores(),studentComments:eComments(),professorComments:eComments(),feedback:""};
 }
 
@@ -76,7 +76,7 @@ function genSessions(year){
     // Primer semestre: 14 sept - 23 dic 2026 (martes y viernes)
     const cur=new Date(2026,8,14),end1=new Date(2026,11,23);
     while(cur<=end1){
-      const d=cur.getDay(),id=localId(cur);
+      const d=cur.getDay(),id=cur.toISOString().slice(0,10);
       if(d===2&&!holidays.has(id))s.push(mkSession(id));
       cur.setDate(cur.getDate()+1);
     }
@@ -98,7 +98,7 @@ function genSessions(year){
     const cur=new Date(yr,8,1),end=new Date(yr+1,4,31);
     while(cur<=end){
       const d=cur.getDay();
-      if(d===2||d===5)s.push(mkSession(localId(cur)));
+      if(d===2||d===5)s.push(mkSession(cur.toISOString().slice(0,10)));
       cur.setDate(cur.getDate()+1);
     }
   }
@@ -129,13 +129,14 @@ const normA=s=>s?s.trim().toLowerCase():"";
 
 function exportXLS(students,asig,year){
   const rows=[["EVALUACIÓN CLÍNICA — CURSO COMPLETO"],["Asignatura:",asig||"—","Curso:",year+"-"+(parseInt(year)+1)],["Generado:",new Date().toLocaleDateString("es-ES")],[],
-    ["RESUMEN"],["Alumno","Sesiones evaluadas","Paciente no acudió","Media alumno (/10)","Media profesor (/10)"]];
+    ["RESUMEN"],    ["Alumno","Grupo","Sesiones evaluadas","Paciente no acudió","Media alumno (/10)","Media profesor (/10)"]];
   students.forEach(st=>{
     const comp=st.sessions.filter(s=>s.status==="completada"&&!s.pacienteNoAcude);
     const na=st.sessions.filter(s=>s.pacienteNoAcude).length;
     const sv=comp.map(s=>totSc(s.studentScores,false)).filter(v=>v!==null);
     const pv=comp.map(s=>totSc(s.professorScores,false)).filter(v=>v!==null);
-    rows.push([st.nombre,comp.length,na,sv.length?(sv.reduce((a,b)=>a+b,0)/sv.length).toFixed(2):"—",pv.length?(pv.reduce((a,b)=>a+b,0)/pv.length).toFixed(2):"—"]);
+    const grLabel=st.grupo==="experimental"?"Experimental":st.grupo==="control"?"Control":"—";
+    rows.push([st.nombre,grLabel,comp.length,na,sv.length?(sv.reduce((a,b)=>a+b,0)/sv.length).toFixed(2):"—",pv.length?(pv.reduce((a,b)=>a+b,0)/pv.length).toFixed(2):"—"]);
   });
   rows.push([]);
   students.forEach(st=>{
@@ -210,6 +211,7 @@ function App(){
   const[pass,setPass]=useState("");
   const[nombre,setNombre]=useState("");
   const[roleSelect,setRoleSelect]=useState("estudiante");
+  const[grupo,setGrupo]=useState("experimental");
   const[asig,setAsig]=useState("");
   const[yr,setYr]=useState(String(new Date().getFullYear()));
   const[authErr,setAuthErr]=useState("");
@@ -253,7 +255,7 @@ function App(){
       const data=d.data();
       const ss=await window._fn.getDoc(window._fn.doc(window._db,"studentSessions",d.id));
       const sessions=ss.exists()&&ss.data().sessions?des(ss.data().sessions):genSessions(parseInt(data.year||new Date().getFullYear()));
-      list.push({id:d.id,nombre:data.nombre,email:data.email,sessions});
+      list.push({id:d.id,nombre:data.nombre,email:data.email,grupo:data.grupo||"",sessions});
     }
     setStudents(list);
   };
@@ -265,7 +267,7 @@ function App(){
         if(!nombre.trim()){setAuthErr("Introduce tu nombre.");setLoading(false);return;}
         if(!asig.trim()){setAuthErr("Introduce la asignatura.");setLoading(false);return;}
         const cred=await window._fn.createUserWithEmailAndPassword(window._auth,email,pass);
-        const pd={nombre:nombre.trim(),email,role:roleSelect,asignatura:asig.trim(),asignaturaNorm:normA(asig),year:yr,createdAt:new Date().toISOString()};
+        const pd={nombre:nombre.trim(),email,role:roleSelect,asignatura:asig.trim(),asignaturaNorm:normA(asig),year:yr,grupo:roleSelect==="estudiante"?grupo:"",createdAt:new Date().toISOString()};
         await window._fn.setDoc(window._fn.doc(window._db,"users",cred.user.uid),pd);
         if(roleSelect==="estudiante"){const ns=genSessions(parseInt(yr));await window._fn.setDoc(window._fn.doc(window._db,"studentSessions",cred.user.uid),{sessions:ser(ns)});}
       }else{await window._fn.signInWithEmailAndPassword(window._auth,email,pass);}
@@ -331,6 +333,10 @@ function App(){
               <option value="estudiante">Estudiante</option>
               <option value="profesor">Profesor</option>
             </select>
+            {roleSelect==="estudiante"&&<select value={grupo} onChange={e=>setGrupo(e.target.value)} style={{display:"block",width:"100%",marginBottom:10,fontSize:13,padding:"9px 12px",borderRadius:8,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A"}}>
+              <option value="experimental">Grupo Experimental</option>
+              <option value="control">Grupo Control</option>
+            </select>}
             <input type="text" placeholder="Asignatura / Rotación" value={asig} onChange={e=>setAsig(e.target.value)} style={{display:"block",width:"100%",marginBottom:10,fontSize:13,padding:"9px 12px",borderRadius:8,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A"}}/>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
               <label style={{fontSize:12,color:"#555",whiteSpace:"nowrap"}}>Año inicio</label>
@@ -476,7 +482,7 @@ function App(){
           return(
             <button key={st.id} onClick={()=>{setActiveStudentId(st.id);setAgendaMonth(0);setScreen("agenda")}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 15px",marginBottom:8,background:"#fff",border:"0.5px solid #E0DDD8",borderRadius:12,cursor:"pointer",textAlign:"left"}}>
               <div style={{width:42,height:42,borderRadius:21,background:accBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>👤</div>
-              <div style={{flex:1}}><p style={{fontSize:14,fontWeight:500,marginBottom:3}}>{st.nombre}</p><p style={{fontSize:12,color:"#888"}}>{comp.length} sesiones completadas</p></div>
+              <div style={{flex:1}}><p style={{fontSize:14,fontWeight:500,marginBottom:3}}>{st.nombre}</p><p style={{fontSize:12,color:"#888"}}>{st.grupo==="experimental"?"🔬 Grupo Experimental":st.grupo==="control"?"🔵 Grupo Control":""} · {comp.length} sesiones</p></div>
               {pm&&<Pill color={sCol(rat(parseFloat(pm),10))} bg={sBg(rat(parseFloat(pm),10))}>{pm}/10</Pill>}
               <span style={{fontSize:13,color:"#aaa"}}>›</span>
             </button>
