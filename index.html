@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
@@ -64,8 +64,11 @@ const HOLIDAYS_2026_27=new Set([
 // Sesiones de enero: lectivas para esta asignatura aunque sea período de exámenes UV
 const JAN_SESSIONS_2027=["2027-01-12","2027-01-19","2027-01-26"];
 
+// Formatea fecha en hora LOCAL para evitar bug de zona horaria UTC+2
+function localId(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
 function mkSession(id){
-  return{id,date:new Date(id),status:"pendiente",pacienteNoAcude:false,studentScores:eScores(),professorScores:eScores(),studentComments:eComments(),professorComments:eComments(),feedback:""};
+  return{id,date:new Date(id+'T12:00:00'),status:"pendiente",pacienteNoAcude:false,studentScores:eScores(),professorScores:eScores(),studentComments:eComments(),professorComments:eComments(),feedback:""};
 }
 
 function genSessions(year){
@@ -73,32 +76,27 @@ function genSessions(year){
   const yr=parseInt(year);
   if(yr==2026){
     const holidays=HOLIDAYS_2026_27;
-    // Primer semestre: 14 sept - 23 dic 2026 (martes y viernes)
+    // Primer semestre: martes desde 14 sept hasta 23 dic 2026
     const cur=new Date(2026,8,14),end1=new Date(2026,11,23);
     while(cur<=end1){
-      const d=cur.getDay(),id=cur.toISOString().slice(0,10);
+      const d=cur.getDay(),id=localId(cur);
       if(d===2&&!holidays.has(id))s.push(mkSession(id));
       cur.setDate(cur.getDate()+1);
     }
     // Enero 2027: martes lectivos para esta asignatura
     JAN_SESSIONS_2027.forEach(id=>s.push(mkSession(id)));
-    // Segundo semestre: 1 feb - 21 may 2027
-    // Martes: hasta el 18 de mayo incluido (no el 25)
-    // Viernes: hasta el 21 de mayo (fin de semestre UV)
-    const cur2=new Date(2027,1,1),end2=new Date(2027,4,21);
+    // Segundo semestre: martes desde 1 feb hasta 18 may 2027
+    const cur2=new Date(2027,1,1),end2=new Date(2027,4,18);
     while(cur2<=end2){
-      const d=cur2.getDay(),id=cur2.toISOString().slice(0,10);
-      const isTue=d===2,isFri=d===5;
-      const skipLateTue=isTue&&id>"2027-05-18"; // Martes después del 18 mayo
-      if(isTue&&!holidays.has(id)&&!skipLateTue)s.push(mkSession(id));
+      const d=cur2.getDay(),id=localId(cur2);
+      if(d===2&&!holidays.has(id))s.push(mkSession(id));
       cur2.setDate(cur2.getDate()+1);
     }
   }else{
-    // Años distintos: generación genérica sept-mayo
     const cur=new Date(yr,8,1),end=new Date(yr+1,4,31);
     while(cur<=end){
-      const d=cur.getDay();
-      if(d===2||d===5)s.push(mkSession(cur.toISOString().slice(0,10)));
+      const d=cur.getDay(),id=localId(cur);
+      if(d===2)s.push(mkSession(id));
       cur.setDate(cur.getDate()+1);
     }
   }
