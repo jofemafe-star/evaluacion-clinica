@@ -62,7 +62,7 @@ const HOLIDAYS_2026_27=new Set([
 ]);
 
 // Sesiones de enero: lectivas para esta asignatura aunque sea período de exámenes UV
-const JAN_SESSIONS_2027=["2027-01-12","2027-01-19","2027-01-26"];
+const JAN_SESSIONS_2027=["2027-01-12","2027-01-19","2027-01-26","2027-01-08","2027-01-15","2027-01-22","2027-01-29"];
 
 // Formatea fecha en hora LOCAL para evitar bug de zona horaria UTC+2
 function localId(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -80,16 +80,16 @@ function genSessions(year){
     const cur=new Date(2026,8,14),end1=new Date(2026,11,23);
     while(cur<=end1){
       const d=cur.getDay(),id=localId(cur);
-      if(d===2&&!holidays.has(id))s.push(mkSession(id));
+      if((d===2||d===5)&&!holidays.has(id))s.push(mkSession(id));
       cur.setDate(cur.getDate()+1);
     }
     // Enero 2027: martes lectivos para esta asignatura
     JAN_SESSIONS_2027.forEach(id=>s.push(mkSession(id)));
     // Segundo semestre: martes desde 1 feb hasta 18 may 2027
-    const cur2=new Date(2027,1,1),end2=new Date(2027,4,18);
+    const cur2=new Date(2027,1,1),end2=new Date(2027,4,21);
     while(cur2<=end2){
       const d=cur2.getDay(),id=localId(cur2);
-      if(d===2&&!holidays.has(id))s.push(mkSession(id));
+      if((d===2||d===5)&&!holidays.has(id))s.push(mkSession(id));
       cur2.setDate(cur2.getDate()+1);
     }
   }else{
