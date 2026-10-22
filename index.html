@@ -213,7 +213,7 @@ function App(){
   const[asig,setAsig]=useState("");
   const[yr,setYr]=useState(String(new Date().getFullYear()));
   const[authErr,setAuthErr]=useState("");
-  const[loading,setLoading]=useState(false);
+  const[loading,setLoading]=useState(false); const[showPass,setShowPass]=useState(false);
   const[saving,setSaving]=useState(false);
   const[students,setStudents]=useState([]);
   const[mySessions,setMySessions]=useState([]);
@@ -344,8 +344,9 @@ function App(){
           </div>
         )}
         <input type="email" placeholder="Correo electrónico" value={email} onChange={e=>setEmail(e.target.value)} style={{display:"block",width:"100%",marginBottom:10,fontSize:13,padding:"9px 12px",borderRadius:8,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A"}}/>
-        <input type="password" placeholder="Contraseña (mín. 6 caracteres)" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAuth()} style={{display:"block",width:"100%",marginBottom:14,fontSize:13,padding:"9px 12px",borderRadius:8,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A"}}/>
-        {authErr&&<p style={{fontSize:12,color:"#A32D2D",marginBottom:10,padding:"8px 10px",background:"#FCEBEB",borderRadius:8}}>{authErr}</p>}
+        <input type={showPass?"text":"password"} placeholder="Contraseña (mín. 6 caracteres)" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAuth()} style={{display:"block",width:"100%",marginBottom:14,fontSize:13,padding:"9px 12px",borderRadius:8,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A"}}/>
+<button type="button" onClick={()=>setShowPass(p=>!p)} style={{marginTop:4,background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#888",padding:"0 4px"}}>{showPass?"Ocultar":"Ver contraseña"}</button>
+       {authErr&&<p style={{fontSize:12,color:"#A32D2D",marginBottom:10,padding:"8px 10px",background:"#FCEBEB",borderRadius:8}}>{authErr}</p>}
         <button onClick={doAuth} disabled={loading} style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:loading?"#ccc":"linear-gradient(135deg,#1D9E75,#0F6E56)",color:"#fff",fontSize:14,fontWeight:500,cursor:loading?"not-allowed":"pointer"}}>
           {loading?"Cargando...":(authMode==="login"?"Entrar →":"Crear cuenta →")}
         </button>
