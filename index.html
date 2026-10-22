@@ -255,7 +255,7 @@ function App(){
       const sessions=ss.exists()&&ss.data().sessions?des(ss.data().sessions):genSessions(parseInt(data.year||new Date().getFullYear()));
       list.push({id:d.id,nombre:data.nombre,email:data.email,grupo:data.grupo||"",sessions});
     }
-    setStudents(list);
+    setStudents(list.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'))); 
   };
 
   const doAuth=async()=>{
