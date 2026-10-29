@@ -111,12 +111,7 @@ const catSc=(scores,cat)=>{
   return v.length?+(v.reduce((a,b)=>a+b,0)/(v.length*4)*cat.maxScore).toFixed(3):null;
 };
 
-const totSc=(scores,noAc)=>{
-  if(noAc)return null;
-  let t=0,any=false;
-  CATS.forEach(cat=>{const s=catSc(scores,cat);if(s!==null){t+=s;any=true;}});
-  return any?+t.toFixed(2):null;
-};
+const totSc=(scores,noAc)=>{if(noAc)return null;let t=0,maxAv=0,any=false;CATS.forEach(cat=>{const s=catSc(scores,cat);if(s!==null){t+=s;maxAv+=cat.maxScore;any=true;}});if(!any||maxAv===0)return null;return+(t/maxAv*10).toFixed(2);};
 
 const sessionTotSc=(s,forSt)=>{const t1=totSc(forSt?s.studentScores:s.professorScores,s.pacienteNoAcude);if(!s.hasPaciente2)return t1;const t2=totSc(forSt?s.p2StudentScores:s.p2ProfessorScores,s.p2PacienteNoAcude);if(t1===null&&t2===null)return null;if(t1===null)return t2;if(t2===null)return t1;return+((t1+t2)/2).toFixed(2);};const rat=(v,mx)=>(v===null||v===undefined)?null:v/mx;
 const sCol=r=>{if(r===null||r===undefined)return"#888";if(r>=0.875)return"#3C3489";if(r>=0.625)return"#0F6E56";if(r>=0.375)return"#BA7517";return"#A32D2D"};
