@@ -374,7 +374,7 @@ function App(){
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
           <button onClick={()=>setScreen(role==="profesor"?"agenda":"main")} style={{background:"none",border:"0.5px solid #D5D2CC",borderRadius:8,padding:"5px 12px",cursor:"pointer",fontSize:12,color:"#555"}}>← Volver</button>
           <div style={{flex:1}}>
-            {role==="profesor"&&activeStudent&&<p style={{fontSize:12,color:acc,fontWeight:500,marginBottom:2}}>👤 {activeStudent.nombre}</p>}
+            {role==="profesor"&&activeStudent&&<p style={{fontSize:12,color:acc,fontWeight:500,marginBottom:2}}>👤 {activeStudent.nombre}{activeStudent.grupo&&<span style={{marginLeft:8,fontSize:11,padding:"2px 8px",borderRadius:20,background:activeStudent.grupo==="experimental"?"#EEEDFE":"#E1F5EE",color:activeStudent.grupo==="experimental"?"#3C3489":"#0F6E56"}}>{activeStudent.grupo==="experimental"?"🔬 Experimental":"🔵 Control"}</span>}</p>}
             <p style={{fontSize:15,fontWeight:500,marginBottom:3,textTransform:"capitalize"}}>{fmt(s.date)}</p>
             <Badge status={s.status} noAcude={s.pacienteNoAcude}/>
           </div>
