@@ -363,7 +363,9 @@ function App(){
     const setComment=(catId,val)=>{const key=isP2?(evalTab==="student"?"p2StudentComments":"p2ProfessorComments"):(evalTab==="student"?"studentComments":"professorComments");const p={};p[key]={...comments,[catId]:val};role==="profesor"?saveProf(activeStudentId,s.id,p):saveStud(s.id,p)};
     const setFb=val=>{if(role==="profesor")saveProf(activeStudentId,s.id,isP2?{p2Feedback:val}:{feedback:val})};
     const setSt=val=>{if(role==="profesor")saveProf(activeStudentId,s.id,{status:val})};
-    const addPaciente2=()=>{const patch={hasPaciente2:true};role==="profesor"?saveProf(activeStudentId,s.id,patch):saveStud(s.id,patch);};const toggleNoAcude=()=>{const patch=isP2?{p2PacienteNoAcude:!s.p2PacienteNoAcude}:{pacienteNoAcude:!s.pacienteNoAcude};role==="profesor"?saveProf(activeStudentId,s.id,patch):saveStud(s.id,patch)};
+    const addPaciente2=()=>{const patch={hasPaciente2:true};role==="profesor"?saveProf(activeStudentId,s.id,patch):saveStud(s.id,patch);};
+   const setTreat=val=>{if(role==="profesor")saveProf(activeStudentId,s.id,isP2?{p2Treatment:val}:{treatment:val})};
+   const toggleNoAcude=()=>{const patch=isP2?{p2PacienteNoAcude:!s.p2PacienteNoAcude}:{pacienteNoAcude:!s.pacienteNoAcude};role==="profesor"?saveProf(activeStudentId,s.id,patch):saveStud(s.id,patch)};
     const totalCriteria=CATS.reduce((a,c)=>a+c.criteria.length,0);
     const scoredCount=Object.values(scores).flatMap(v=>Object.values(v)).filter(v=>v!==null).length;
     const sT=totSc(s.studentScores,s.pacienteNoAcude);
