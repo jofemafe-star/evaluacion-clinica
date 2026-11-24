@@ -126,7 +126,7 @@ function exportXLS(students,asig,year){
   students.forEach(st=>{
     const comp=st.sessions.filter(s=>s.status==="completada"&&!s.pacienteNoAcude);
     const na=st.sessions.filter(s=>s.pacienteNoAcude).length;
-    const sv=comp.map(s=>totSc(s.studentScores,false)).filter(v=>v!==null);
+    const sv=st.grupo==="control"?[]:comp.map(s=>totSc(s.studentScores,false)).filter(v=>v!==null);
     const pv=comp.map(s=>totSc(s.professorScores,false)).filter(v=>v!==null);
     const grLabel=st.grupo==="experimental"?"Experimental":st.grupo==="control"?"Control":"—";
     rows.push([st.nombre,grLabel,comp.length,na,sv.length?(sv.reduce((a,b)=>a+b,0)/sv.length).toFixed(2):"—",pv.length?(pv.reduce((a,b)=>a+b,0)/pv.length).toFixed(2):"—"]);
@@ -144,7 +144,7 @@ function exportXLS(students,asig,year){
     rows.push([],["DETALLE SESIONES"],["Fecha","No acudió","Categoría","Criterio","Alumno","Nivel alumno","Profesor","Nivel profesor","Feedback"]);
     all.forEach(s=>{
       if(s.pacienteNoAcude){rows.push([s.id,"SÍ","—","—","—","—","—","—",""]);rows.push([]);return;}
-      CATS.forEach((cat,ci)=>{cat.criteria.forEach((cr,i)=>{const sv=s.studentScores[cat.id]?s.studentScores[cat.id][i]:null,pv=s.professorScores[cat.id]?s.professorScores[cat.id][i]:null;rows.push([ci===0&&i===0?s.id:"","NO",i===0?cat.title:"",cr,sv!==null&&sv!==undefined?sv:"—",lvlNm(sv),pv!==null&&pv!==undefined?pv:"—",lvlNm(pv),ci===0&&i===0?(s.feedback||""):""])});});
+      CATS.forEach((cat,ci)=>{cat.criteria.forEach((cr,i)=>{const sv=s.studentScores[cat.id]?s.studentScores[cat.id][i]:null,pv=s.professorScores[cat.id]?s.professorScores[cat.id][i]:null;rows.push([ci===0&&i===0?s.id:"","NO",i===0?cat.title:"",cr,sv!==null&&sv!==undefined?sv:"—",lvlNm(sv),pv!==null&&pv!==undefined?pv:"—",lvlNm(pv),ci===0&&i===0?(st.grupo==="control"?(s.fbControl===true?"Feedback solicitado y recibido: SÍ":s.fbControl===false?"Feedback solicitado y recibido: NO":""):(s.feedback||"")):""])});});
       rows.push(["","","","NOTA TOTAL (/10)",totSc(s.studentScores,false)||"—","",totSc(s.professorScores,false)||"—","",""],[]);
     });
     rows.push([]);
@@ -370,7 +370,10 @@ function App(){
     const scoredCount=Object.values(scores).flatMap(v=>Object.values(v)).filter(v=>v!==null).length;
     const sT=totSc(s.studentScores,s.pacienteNoAcude);
     const pT=totSc(s.professorScores,s.pacienteNoAcude);
-    const tabs=role==="profesor"?[["professor","Evaluación"],["student","Autoevaluación alumno"],["feedback","Feedback"]]:[["student","Mi autoevaluación"],["feedback","Feedback recibido"]];
+    const isCtrl=((role==="profesor"?(activeStudent&&activeStudent.grupo):(profile&&profile.grupo))==="control");
+    const fbc=isP2?s.p2FbControl:s.fbControl;
+    const setFbCtrl=val=>{if(role==="profesor")saveProf(activeStudentId,s.id,isP2?{p2FbControl:val}:{fbControl:val})};
+    const tabs=role==="profesor"?(isCtrl?[["professor","Evaluación"],["feedback","Feedback"]]:[["professor","Evaluación"],["student","Autoevaluación alumno"],["feedback","Feedback"]]):(isCtrl?[["feedback","Feedback recibido"]]:[["student","Mi autoevaluación"],["feedback","Feedback recibido"]]);
     return(
       <div style={{maxWidth:700,margin:"0 auto",padding:"1.5rem 1rem"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
@@ -409,10 +412,10 @@ function App(){
               {role==="profesor"&&evalTab==="professor"&&<button onClick={()=>setSt("completada")} style={{width:"100%",marginTop:8,padding:"11px",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+acc+","+acc+"bb)",color:"#fff",fontSize:13,fontWeight:500,cursor:"pointer"}}>Marcar como completada ✓</button>}
             </div>}
             {evalTab==="feedback"&&<div>
-              {(sT!==null||pT!==null)&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-                {[["Autoevaluación",sT,"#534AB7","#EEEDFE"],["Evaluación profesor",pT,"#0F6E56","#E1F5EE"]].map(a=><div key={a[0]} style={{background:a[3],borderRadius:12,padding:"1rem",textAlign:"center"}}><p style={{fontSize:11,color:a[2],marginBottom:3,opacity:.8}}>{a[0]}</p><p style={{fontSize:26,fontWeight:500,color:a[2]}}>{a[1]!==null?a[1]:"—"}</p><p style={{fontSize:10,color:a[2],opacity:.7}}>sobre 10</p></div>)}
+              {(isCtrl?pT!==null:(sT!==null||pT!==null))&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+                {[["Autoevaluación",sT,"#534AB7","#EEEDFE"],["Evaluación profesor",pT,"#0F6E56","#E1F5EE"]].filter(a=>!(isCtrl&&a[0]==="Autoevaluación")).map(a=><div key={a[0]} style={{background:a[3],borderRadius:12,padding:"1rem",textAlign:"center"}}><p style={{fontSize:11,color:a[2],marginBottom:3,opacity:.8}}>{a[0]}</p><p style={{fontSize:26,fontWeight:500,color:a[2]}}>{a[1]!==null?a[1]:"—"}</p><p style={{fontSize:10,color:a[2],opacity:.7}}>sobre 10</p></div>)}
               </div>}
-              {role==="profesor"?<div><p style={{fontSize:13,fontWeight:500,marginBottom:8}}>Feedback para el alumno</p><textarea value={(isP2?s.p2Feedback:s.feedback)||""} onChange={e=>setFb(e.target.value)} placeholder="Puntos fuertes, áreas de mejora y recomendaciones..." style={{width:"100%",minHeight:130,fontSize:13,padding:"10px 12px",borderRadius:10,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A",resize:"vertical",lineHeight:1.6}}/></div>
+              {isCtrl?(role==="profesor"?<div style={{background:"#F7F6F3",borderRadius:12,padding:"1rem"}}><p style={{fontSize:13,fontWeight:500,marginBottom:10}}>¿El alumno ha solicitado y recibido feedback?</p><div style={{display:"flex",gap:8}}>{[[true,"Sí"],[false,"No"]].map(o=><button key={o[1]} onClick={()=>setFbCtrl(fbc===o[0]?null:o[0])} style={{flex:1,padding:"10px",borderRadius:10,border:"none",cursor:"pointer",fontSize:13,fontWeight:500,background:fbc===o[0]?acc:"#EEECEA",color:fbc===o[0]?"#fff":"#555"}}>{o[1]}</button>)}</div><p style={{fontSize:11,color:"#888",marginTop:8}}>Solo se registra Sí/No. En el grupo control no se guarda el texto del feedback.</p></div>:<div style={{textAlign:"center",padding:"2rem",color:"#aaa"}}><div style={{fontSize:28,marginBottom:8}}>💬</div><p style={{fontSize:13}}>Si quieres feedback sobre esta sesión, solicítalo al profesor.</p></div>):role==="profesor"?<div><p style={{fontSize:13,fontWeight:500,marginBottom:8}}>Feedback para el alumno</p><textarea value={(isP2?s.p2Feedback:s.feedback)||""} onChange={e=>setFb(e.target.value)} placeholder="Puntos fuertes, áreas de mejora y recomendaciones..." style={{width:"100%",minHeight:130,fontSize:13,padding:"10px 12px",borderRadius:10,border:"0.5px solid #D5D2CC",background:"#F7F6F3",color:"#1A1A1A",resize:"vertical",lineHeight:1.6}}/></div>
               :(isP2?s.p2Feedback:s.feedback)?<div style={{background:"linear-gradient(135deg,#EEEDFE,#E1F5EE)",borderRadius:14,padding:"1.25rem"}}><p style={{fontSize:12,fontWeight:500,color:"#0F6E56",marginBottom:8}}>💬 Feedback del profesor</p><p style={{fontSize:14,lineHeight:1.7}}>{isP2?s.p2Feedback:s.feedback}</p></div>
               :<div style={{textAlign:"center",padding:"2rem",color:"#aaa"}}><div style={{fontSize:28,marginBottom:8}}>⏳</div><p style={{fontSize:13}}>El profesor aún no ha escrito feedback.</p></div>}
             </div>}
@@ -445,7 +448,7 @@ function App(){
               </div>
               <div style={{flex:1}}><p style={{fontSize:13,fontWeight:500,marginBottom:3,textTransform:"capitalize"}}>{fmt(s.date)}</p><Badge status={s.status} noAcude={s.pacienteNoAcude}/></div>
               {!s.pacienteNoAcude&&<div style={{display:"flex",gap:6}}>
-                {sT!==null&&<Pill color={sCol(rat(sT,10))} bg={sBg(rat(sT,10))} small>🎓{sT}</Pill>}
+                {sT!==null&&activeStudent.grupo!=="control"&&<Pill color={sCol(rat(sT,10))} bg={sBg(rat(sT,10))} small>🎓{sT}</Pill>}
                 {pT!==null&&<Pill color={sCol(rat(pT,10))} bg={sBg(rat(pT,10))} small>👩‍⚕️{pT}</Pill>}
               </div>}
               <span style={{fontSize:13,color:"#aaa"}}>›</span>
@@ -495,7 +498,7 @@ function App(){
             </div>
             {students.map((st,idx)=>{
               const comp=st.sessions.filter(s=>s.status==="completada"&&!s.pacienteNoAcude);
-              const sv=comp.map(s=>totSc(s.studentScores,false)).filter(v=>v!==null);
+              const sv=st.grupo==="control"?[]:comp.map(s=>totSc(s.studentScores,false)).filter(v=>v!==null);
               const pv=comp.map(s=>totSc(s.professorScores,false)).filter(v=>v!==null);
               const sm=sv.length?(sv.reduce((a,b)=>a+b,0)/sv.length).toFixed(2):null;
               const pm=pv.length?(pv.reduce((a,b)=>a+b,0)/pv.length).toFixed(2):null;
@@ -534,13 +537,13 @@ function App(){
         {ms.map(s=>{
           const sT=totSc(s.studentScores,s.pacienteNoAcude);
           return(
-            <button key={s.id} onClick={()=>{setActiveSessionId(s.id);setEvalTab("student");setScreen("session")}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",marginBottom:7,background:"#fff",border:"0.5px solid #E0DDD8",borderRadius:12,cursor:"pointer",textAlign:"left",opacity:s.pacienteNoAcude?0.65:1}}>
+            <button key={s.id} onClick={()=>{setActiveSessionId(s.id);setEvalTab((profile&&profile.grupo)==="control"?"feedback":"student");setScreen("session")}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"12px 14px",marginBottom:7,background:"#fff",border:"0.5px solid #E0DDD8",borderRadius:12,cursor:"pointer",textAlign:"left",opacity:s.pacienteNoAcude?0.65:1}}>
               <div style={{width:46,height:46,borderRadius:10,background:s.pacienteNoAcude?"#E8E6E1":accBg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
                 {s.pacienteNoAcude?<span style={{fontSize:20}}>🚫</span>:<><span style={{fontSize:16,fontWeight:500,color:acc,lineHeight:1}}>{s.date.getDate()}</span><span style={{fontSize:10,color:acc,opacity:.75,textTransform:"capitalize"}}>{s.date.toLocaleDateString("es-ES",{weekday:"short"})}</span></>}
               </div>
               <div style={{flex:1}}><p style={{fontSize:13,fontWeight:500,marginBottom:3,textTransform:"capitalize"}}>{fmt(s.date)}</p><Badge status={s.status} noAcude={s.pacienteNoAcude}/></div>
-              {!s.pacienteNoAcude&&sT!==null&&<Pill color={sCol(rat(sT,10))} bg={sBg(rat(sT,10))} small>🎓{sT}</Pill>}
-              {s.feedback&&!s.pacienteNoAcude&&<span style={{fontSize:16}}>💬</span>}
+              {!s.pacienteNoAcude&&sT!==null&&!(profile&&profile.grupo==="control")&&<Pill color={sCol(rat(sT,10))} bg={sBg(rat(sT,10))} small>🎓{sT}</Pill>}
+              {s.feedback&&!s.pacienteNoAcude&&!(profile&&profile.grupo==="control")&&<span style={{fontSize:16}}>💬</span>}
               <span style={{fontSize:13,color:"#aaa"}}>›</span>
             </button>
           );
